@@ -27,13 +27,26 @@ pipeline {
                 script {
                     def response = sh(script: """
                         curl -s -X POST http://172.17.0.1:8000/predict \
-                        -H 'Content-Type: application/json' \
-                        -d '{"fixed_acidity": 7.4, "volatile_acidity": 0.7, "citric_acid": 0.0, "residual_sugar": 1.9, "chlorides": 0.076, "free_sulfur_dioxide": 11.0, "total_sulfur_dioxide": 34.0, "density": 0.9978, "pH": 3.51, "sulphates": 0.56, "alcohol": 9.4}'
+                        -H "Content-Type: application/json" \
+                        -d '{
+                            "fixed_acidity": 7.4, 
+                            "volatile_acidity": 0.7, 
+                            "citric_acid": 0.0, 
+                            "residual_sugar": 1.9, 
+                            "chlorides": 0.076, 
+                            "free_sulfur_dioxide": 11.0, 
+                            "total_sulfur_dioxide": 34.0, 
+                            "density": 0.9978, 
+                            "pH": 3.51, 
+                            "sulphates": 0.56, 
+                            "alcohol": 9.4
+                        }'
                     """, returnStdout: true).trim()
                     
-                    echo "Valid API Response: ${response}"
-                    if (!response.contains("wine_quality")) {
-                        error "Validation Failed: Prediction field missing!"
+                    echo "API Response: ${response}"
+                    
+                    if (!response.contains("wine_quality") || !response.contains("Shashank Upadhyay")) {
+                        error "Validation Failed: Response missing quality or personal info!"
                     }
                 }
             }
@@ -41,11 +54,16 @@ pipeline {
         stage('Send Invalid Request') {
             steps {
                 script {
-                    def status = sh(script: "curl -s -o /dev/null -w '%{http_code}' -X POST http://172.17.0.1:8000/predict -H 'Content-Type: application/json' -d '{\"bad_field\": 0}'", returnStdout: true).trim()
+                    def status = sh(script: """
+                        curl -s -o /dev/null -w '%{http_code}' -X POST http://172.17.0.1:8000/predict \
+                        -H "Content-Type: application/json" \
+                        -d '{"fixed_acidity": 7.4}'
+                    """, returnStdout: true).trim()
                     
                     echo "Invalid Request Status Code: ${status}"
+                    
                     if (status != "422") {
-                        error "Validation Failed: API did not return error for invalid input!"
+                        error "Validation Failed: Expected status 422 for incomplete data, got ${status}"
                     }
                 }
             }
@@ -57,10 +75,10 @@ pipeline {
             sh "docker rm ${CONTAINER_NAME} || true"
         }
         success {
-            echo "Pipeline Passed: All validations successful [cite: 454]"
+            echo "Pipeline Passed: All validations successful"
         }
         failure {
-            echo "Pipeline Failed: Validation checks did not pass [cite: 453]"
+            echo "Pipeline Failed: Validation checks did not pass"
         }
     }
 }
