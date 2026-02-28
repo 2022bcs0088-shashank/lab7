@@ -18,8 +18,8 @@ pipeline {
         }
         stage('Wait for Service Readiness') {
             steps {
-                sh "sleep 5" 
-                sh "curl --retry 5 --retry-delay 2 http://localhost:8000/"
+                sh "sleep 10" 
+                sh "curl --retry 5 --retry-delay 2 http://172.17.0.1:8000/"
             }
         }
         stage('Send Valid Inference Request') {
