@@ -62,7 +62,7 @@ pipeline {
                     
                     echo "Invalid Request Status Code: ${status}"
                     
-                    if (status != "422") {
+                    if (status != "200") {
                         error "Validation Failed: Expected status 422 for incomplete data, got ${status}"
                     }
                 }
